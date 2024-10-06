@@ -1,18 +1,44 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:manican/core/components/custom_multi_select_dropdown.dart';
+import 'package:manican/core/constance/constance.dart';
 import 'package:manican/core/generated/codegen_loader.g.dart';
-import 'package:manican/routing/appRouter.dart';
-import 'package:manican/core/theme/app_theme.dart';
 import 'package:manican/di/appInitializer.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:manican/features/posts/presentation/bloc/add_delete_update_post/add_delete_update_post_bloc.dart';
-import 'package:manican/features/posts/presentation/bloc/posts/posts_bloc.dart';
-import 'package:manican/features/posts/presentation/pages/posts_page.dart';
+import 'package:manican/features/bookings/presentation/bloc/cubit.dart';
+import 'package:manican/shared_screen/error_screen.dart';
+import 'package:manican/features/clients/presentation/bloc/cubit.dart';
+import 'package:sizer/sizer.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:manican/core/components/app_cubit/cubit.dart';
+import 'package:manican/core/components/app_cubit/states.dart';
+import 'package:manican/core/constance/appLink.dart';
+import 'package:manican/core/theme/app_theme.dart';
+import 'package:manican/features/authentication/presentation/bloc/cubit.dart';
+import 'package:manican/features/before_after/presentation/bloc/cubit/before_after_cubit.dart';
+import 'package:manican/features/booking/presentation/bloc/cubit/booking_bolc_cubit.dart';
+import 'package:manican/features/branches/presentation/bloc/branches_bloc/branches_bloc.dart';
+import 'package:manican/features/complaints/presentation/bloc/cubit.dart';
+import 'package:manican/features/employees/presentation/bloc/cubit.dart';
+import 'package:manican/features/offers/presentation/bloc/offer_bloc/offer_bloc.dart';
+import 'package:manican/features/services/presentation/bloc/cubit/service_bolc_cubit.dart';
+import 'package:manican/features/statistic/presentation/bloc/statistic_bloc/statistic_bloc.dart';
+import 'package:manican/shared_screen/wait_update_screen.dart';
 import 'package:manican/di/injectionContainer.dart' as di;
+
 void main() async {
+  ///because binding should be initialized before calling runApp.
+  WidgetsFlutterBinding.ensureInitialized();
+  await di.init();
   AppInitializer.init();
-  runApp(MyApp());
+
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    print(details.exceptionAsString());
+    return MaterialApp(
+      home: ErrorScreen(errorMessage: details.exceptionAsString()),
+    );
+  };
+
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -21,46 +47,87 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return EasyLocalization(
-      supportedLocales: [arabicLocale, englishLocale],
-      path: 'assets/i18n',
-      fallbackLocale: englishLocale,
-      startLocale: englishLocale,
-      saveLocale: false,
-      useOnlyLangCode: true,
-      assetLoader: const CodegenLoader(),
-      child: Builder(builder: (context) {
-        return ScreenUtilInit(
-          designSize: const Size(360, 690),
-          minTextAdapt: true,
-          splitScreenMode: true,
-          builder: (
-            BuildContext context,
-            Widget? child,
-          ) =>
-           MultiBlocProvider(
-        providers: [
-          BlocProvider(
-              create: (_) => di.sl<PostsBloc>()..add(GetAllPostsEvent())),
-          BlocProvider(create: (_) => di.sl<AddDeleteUpdatePostBloc>()),
-        ],
-       
-              child: MaterialApp.router(
-              title: 'title',
-              theme: appTheme,
-              locale: context.locale,
-              builder: (context, child) => PostsPage(),
-              supportedLocales: context.supportedLocales,
-              localizationsDelegates: context.localizationDelegates,
-              routerConfig: AppRouter.getRouter,
-              debugShowCheckedModeBanner: false,
+        supportedLocales: [arabicLocale, englishLocale],
+        path: 'assets/i18n',
+        fallbackLocale: englishLocale,
+        startLocale: arabicLocale,
+        saveLocale: false,
+        useOnlyLangCode: true,
+        assetLoader: const CodegenLoader(),
+        child: Builder(builder: (context) {
+          return Sizer(builder: (context, orientation, deviceType) {
+            return MultiBlocProvider(
+              providers: [
+                BlocProvider(create: (context) => di.sl<LoginCubit>()),
+                BlocProvider(create: (context) => di.sl<StatisticBloc>()),
+                BlocProvider(create: (context) => di.sl<BranchesBloc>()),
+                BlocProvider(create: (context) => di.sl<BookingBloc>()),
+                BlocProvider(create: (context) => di.sl<BeforeAfterBloc>()),
+                BlocProvider(create: (context) => di.sl<OffersBloc>()),
+                BlocProvider(create: (context) => di.sl<ServiceBloc>()),
+                BlocProvider(
+                    create: (context) => di.sl<BookingsCubit>()
+                      ..getAllCurrentBookings(int.parse(AppLink.branchId))),
+                BlocProvider(
+                    create: (context) => di.sl<ClientsCubit>()
+                      ..getAllClients(int.parse(AppLink.branchId))),
+                BlocProvider(create: (context) => AppCubit()),
+                BlocProvider(
+                    create: (context) => di.sl<EmployeesCubit>()
+                      ..getAllEmployees(int.parse(AppLink.branchId))),
+                BlocProvider(
+                    create: (context) => di.sl<ComplaintsCubit>()
+                      ..getAllComplaints(int.parse(AppLink.branchId))),
+              ],
+              child: BlocBuilder<AppCubit, AppStates>(
+                builder: (context, state) {
+                  print('rebuild...............................');
+                  AppCubit cubit = AppCubit.get(context);
+                  return MaterialApp(
+                    title: 'AlMALIKAN',
+                    theme: appTheme,
+                    locale: context.locale,
+                    builder: (context, child) => Overlay(
+                      initialEntries: [
+                        OverlayEntry(
+                          builder: (context) => Navigator(
+                            onGenerateRoute: (settings) => MaterialPageRoute(
+                              builder: (context) => LayoutBuilder(
+                                builder: (context, constraints) {
+                                  double screenWidth = constraints.maxWidth;
+                                  double screenheight = constraints.maxHeight;
+                                  if (screenWidth >= 1300 &&
+                                      screenheight > 630) {
+                                    if (AppInitializer.isHaveAuth) {
+                                      if (AppLink.branchId == '0') {
+                                        print('............1');
+                                        return cubit.screens[1];
+                                      }
+                                      print('............2');
+                                      print(cubit.selectedScreenIndex);
+                                      return cubit
+                                          .screens[cubit.selectedScreenIndex];
+                                    } else {
+                                      return AppInitializer.startScreen;
+                                    }
+                                  } else {
+                                    return const WaitUpdateScreen();
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
                         ),
-            ),
-        );
-      }),
-    );
+                      ],
+                    ),
+                    supportedLocales: context.supportedLocales,
+                    localizationsDelegates: context.localizationDelegates,
+                    debugShowCheckedModeBanner: false,
+                  );
+                },
+              ),
+            );
+          });
+        }));
   }
-
-  Locale get englishLocale => const Locale('en');
-
-  Locale get arabicLocale => const Locale('ar');
-  }
+}

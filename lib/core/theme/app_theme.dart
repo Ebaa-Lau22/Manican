@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 ThemeData get appTheme => ThemeData(
     brightness: Brightness.light,
-    fontFamily: GoogleFonts.dmSans().fontFamily,
+    fontFamily: "Cairo",
     textTheme: textTheme,
+    primaryColor: AppColors.primary,
     appBarTheme:
         const AppBarTheme(iconTheme: IconThemeData(color: Colors.black)));
 

@@ -1,21 +1,36 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:manican/core/constance/appLink.dart';
+import 'package:manican/features/authentication/presentation/pages/login_page.dart';
 import 'package:manican/routing/appRouter.dart';
-import 'package:manican/di/injectionContainer.dart' as di;
+import 'package:shared_preferences/shared_preferences.dart';
 
 abstract class AppInitializer {
+  static Widget startScreen = LoginScreen();
+  static bool isHaveAuth = false;
   static init() async {
-    ///because binding should be initialized before calling runApp.
-    WidgetsFlutterBinding.ensureInitialized();
-
     ///initialize EasyLocalization
-   await EasyLocalization.ensureInitialized();
+    await EasyLocalization.ensureInitialized();
 
     ///initialize routing
     AppRouter.init();
 
-    ///dependencies injection
-    await di.init();
+    //init
+    SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
+    String? token = sharedPreferences.getString("TOKEN");
+    String? role = sharedPreferences.getString("ROLE");
+    int? branchId = sharedPreferences.getInt("BRANCH_ID");
+    String? branchID = sharedPreferences.getString("branchId");
+    print(branchID);
+    print('branchID;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;');
+    if (token != null && role != null && branchId != null) {
+      AppLink.token = token;
+      AppLink.role = role;
+      AppLink.branchId = branchID ?? '0';
+      isHaveAuth = true;
+    }
 
+    ///dependencies injection
+    // await di.init();
   }
 }
